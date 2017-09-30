@@ -6,6 +6,6 @@
   
   /src Spark jobs written in scala
   
-  hive_actions.txt - file contains manual actions
+  hive_actions.txt - file contains manual Hive and Sqoop actions description
   
   pom.xml build descriptor for Spark job creation 
