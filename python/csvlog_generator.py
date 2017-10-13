@@ -6,6 +6,8 @@ import random
 from random import randint
 import StringIO
 import socket
+import random_ip 
+from random_ip import getRandomIP
 
 #names = collections.defaultdict(str) 
 
@@ -23,7 +25,7 @@ writer = csv.writer(output)
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(( '127.0.0.1', 44444 ))
 #s.setblocking(False)
-
+#200000000
 for i in range(200000000):
   
   pos = randint(1, len(names))
@@ -38,11 +40,12 @@ for i in range(200000000):
   
   if( pos < len(names) and adrPos < len (addresses)):
     if(len(names[pos]) > 1 and len (addresses[adrPos]) > 0):
-      writer.writerow( (target_date.strftime('%Y-%m-%d %H:%M:%S'), names[pos][1], "%.2f" % price,  names[pos][0], addresses[adrPos][0]))
-#      print '{0}'.format(target_date.strftime('%Y-%m-%d %H:%M:%S'))
-      line = output.getvalue()
   
       try:
+        writer.writerow( (target_date.strftime('%Y-%m-%d %H:%M:%S'), names[pos][1], "%.2f" % price,  names[pos][0], getRandomIP(addresses[adrPos][0])))
+#         print '{0}'.format(target_date.strftime('%Y-%m-%d %H:%M:%S'))
+        line = output.getvalue()
+
 #        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #        s.connect(( '127.0.0.1', 44444 ))
         s.sendall(line)
