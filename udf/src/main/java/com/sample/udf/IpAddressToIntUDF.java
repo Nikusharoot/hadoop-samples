@@ -7,8 +7,8 @@ import org.apache.hadoop.io.LongWritable;
 
 ;
 
-@Description(name = "IpAddressToIntUDF", value = "returns long value, where x is ip address (STRING)", extended = "SELECT ipAddressToIntUDF('12.12.12.12') from foo limit 1;")
-class IpAddressToIntUDF extends UDF {
+@Description(name = "ipAddressToIntUDF", value = "returns long value, where x is ip address (STRING)", extended = "SELECT ipAddressToIntUDF('12.12.12.12') from foo limit 1;")
+public class IpAddressToIntUDF extends UDF {
 	
 	public LongWritable evaluate(Text input) {
 		if (input == null)

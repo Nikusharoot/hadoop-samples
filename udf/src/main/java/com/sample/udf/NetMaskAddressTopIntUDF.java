@@ -8,7 +8,7 @@ import org.apache.hadoop.io.LongWritable;
 @Description(name = "NetMaskAddressTopIntUDF", 
 value = "returns long top value according to net mask, where x is netmask (STRING)", 
 extended = "SELECT netMaskAddressTopIntUDF('21.12.12.12/12') from foo limit 1;")
-class NetMaskAddressTopIntUDF extends NetMaskAddressLowIntUDF {
+public class NetMaskAddressTopIntUDF extends NetMaskAddressLowIntUDF {
 
 	public LongWritable evaluate(Text input) {
 		if (input == null)

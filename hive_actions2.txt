@@ -1,0 +1,239 @@
+start flume
+./fl.sh
+
+start python
+python csvlog.py
+check size of test data
+hadoop fs -count hdfs://localhost/tmp/system.log/*
+
+
+move after flume data
+hadoop fs -mv hdfs://localhost/tmp/system.log/* hdfs://localhost/user/cloudera/data/plain2
+
+hadoop fs -mkdir hdfs://localhost/user/cloudera/data/hive-external
+
+create hive db
+CREATE DATABASE IF NOT EXISTS sales_ext
+
+
+use sales_ext;
+
+DROP TABLE IF EXISTS esales_ext;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS
+esales_ext (saletime STRING, product STRING, price DECIMAL, category STRING, address STRING)
+PARTITIONED BY (date STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LOCATION '/user/cloudera/data/hive-external'
+
+
+//https://github.com/ogrodnek/csv-serde
+
+CREATE EXTERNAL TABLE IF NOT EXISTS
+esales_ext (saletime STRING, product STRING, price DECIMAL, category STRING, address STRING)
+PARTITIONED BY (date STRING)
+ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+LOCATION '/user/cloudera/data/hive-external/esales_ext'
+
+
+
+
+LOAD DATA INPATH
+"/user/cloudera/data/plain2/17/08/01/*" INTO TABLE esales_ext
+PARTITION(date='2017-08-01');
+
+select count(*) from esales_ext where date='2017-08-01';
+
+LOAD DATA INPATH
+"/user/cloudera/data/plain2/17/08/02/*" INTO TABLE esales_ext
+PARTITION(date='2017-08-02');
+
+LOAD DATA INPATH
+"/user/cloudera/data/plain2/17/08/03/*" INTO TABLE esales_ext
+PARTITION(date='2017-08-03');
+
+LOAD DATA INPATH
+"/user/cloudera/data/plain2/17/08/04/*" INTO TABLE esales_ext
+PARTITION(date='2017-08-04');
+
+LOAD DATA INPATH
+"/user/cloudera/data/plain2/17/08/05/*" INTO TABLE esales_ext
+PARTITION(date='2017-08-05');
+
+LOAD DATA INPATH
+"/user/cloudera/data/plain2/17/08/06/*" INTO TABLE esales_ext
+PARTITION(date='2017-08-06');
+
+LOAD DATA INPATH
+"/user/cloudera/data/plain2/17/08/07/*" INTO TABLE esales_ext
+PARTITION(date='2017-08-07');
+
+
+
+
+
+Select top 10  most frequently purchased categories
+select category , count(*) as cat_count from esales_ext group by category sort by cat_count limit 10;  
+
+Select top 10 most frequently purchased product in each category
+SELECT es.*
+FROM
+  ( SELECT grp_sls.category,
+           grp_sls.cnt,
+           grp_sls.product,
+           row_number() over (partition BY grp_sls.category
+                              ORDER BY grp_sls.cnt DESC) AS seqnum
+   FROM
+     ( SELECT category,
+              product,
+              count(*) AS cnt
+      FROM esales_ext
+      GROUP BY category,
+               product ) AS grp_sls) es
+WHERE seqnum <= 10;
+
+6. JOIN events with geodata 
+6.1 Put data from http://dev.maxmind.com/geoip/geoip2/geolite2/ to HIVE table
+
+CREATE external TABLE IF NOT EXISTS
+location (
+network STRING,
+geoname_id STRING,
+registered_country_geoname_id STRING,
+represented_country_geoname_id STRING,
+is_anonymous_proxy STRING,
+is_satellite_provider STRING,
+postal_code STRING,
+latitude STRING,
+longitude STRING,
+accuracy_radius STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LOCATION '/user/cloudera/data/hive-external2/location'
+
+LOAD  DATA LOCAL INPATH
+"/home/cloudera/projects/hdfs/csv/addresses.csv" INTO TABLE location;
+
+
+6.2 JOIN events data with ip geo data
+
+ADD JAR /home/cloudera/workspace/SparkSample/udf/target/hive-extensions-1.0-SNAPSHOT-jar-with-dependencies.jar;
+CREATE TEMPORARY FUNCTION ipAddressToIntUDF as 'com.sample.udf.IpAddressToIntUDF';
+select saletime , product , price , category ,address, ipAddressToIntUDF(address) from sales_ext.esales_ext where date='2017-08-07' limit 10;
+
+
+SELAECT lo.geoname_id geo_id, es.address address, es.price price 
+FROM sales_ext.esales_ext es JOIN sales.location lo ON (es.address = lo.network)
+LIMIT 30;
+
+6.3 Select top 10 countries with the highest money spending
+
+select eslo.geo_id,  sum(eslo.price) sum_price from 
+( 
+select lo.geoname_id geo_id,  es.price price 
+from esales2 es join location lo ON (es.address = lo.network)
+) eslo
+group by eslo.geo_id
+sort by sum_price desc
+limit 100
+
+
+
+
+7. Put Hive queries result to RDBMS via SQOOP
+
+7.1 Install any RDBMS (e.g. MySQL, PostgreSQL)
+
+7.2 Install and configure SQOOP
+
+7.3 - 5.1
+insert overwrite directory '/user/cloudera/data/sales51' row format delimited fields terminated by ',' select concat('"', category, '"') , count(*) as cat_count from esales2 group by category sort by cat_count limit 10;
+
+CREATE TABLE sales51 (
+category VARCHAR(100) NOT NULL,
+cat_count INT(6)
+);
+
+
+sqoop export --connect "jdbc:mysql://localhost:3306/sales" \
+   --username root \
+   --password cloudera \
+   --table sales51 \
+   --export-dir /user/cloudera/data/sales51 \
+   --input-fields-terminated-by ',' \
+   --input-lines-terminated-by '\n' \
+   --input-optionally-enclosed-by '\"' \
+   --num-mappers 2 	
+
+
+7.3 - 5.2
+insert overwrite directory '/user/cloudera/data/sales52' row format delimited fields terminated by ',' 
+SELECT concat('"', category, '"'), cnt, concat('"', product, '"'), seqnum
+FROM
+  ( SELECT grp_sls.category,
+           grp_sls.cnt,
+           grp_sls.product,
+           row_number() over (partition BY grp_sls.category
+                              ORDER BY grp_sls.cnt) AS seqnum
+   FROM
+     ( SELECT category,
+              product,
+              count(*) AS cnt
+      FROM esales2
+      GROUP BY category,
+               product ) AS grp_sls) es
+WHERE seqnum <= 10;
+
+CREATE TABLE sales52 (
+category VARCHAR(100) NOT NULL,
+cnt INT(6),
+product VARCHAR(100) NOT NULL,
+seqnum INT(6)
+);
+
+
+sqoop export --connect "jdbc:mysql://localhost:3306/sales" \
+   --username root \
+   --password cloudera \
+   --table sales52 \
+   --export-dir /user/cloudera/data/sales52 \
+   --input-fields-terminated-by ',' \
+   --input-lines-terminated-by '\n' \
+   --input-optionally-enclosed-by '\"' \
+   --num-mappers 2 
+
+
+7.3 - 6.3
+
+insert overwrite directory '/user/cloudera/data/sales63' row format delimited fields terminated by ',' 
+select eslo.geo_id,  sum(eslo.price) sum_price from 
+( 
+select lo.geoname_id geo_id,  es.price price 
+from esales2 es join location lo ON (es.address = lo.network)
+) eslo
+group by eslo.geo_id
+sort by sum_price desc
+limit 100;
+
+CREATE TABLE sales63 (
+geo_id INT(6),
+price DOUBLE
+);
+
+
+
+
+DROP TABLE IF EXISTS events_tmp;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS
+events_tmp (saletime STRING, product STRING, price DECIMAL, category STRING, address STRING)
+PARTITIONED BY (year int, month int, day int)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LOCATION '/user/cloudera/data/plain'
+
+select count(*) from events_tmp where year = 17 and month = 8 and day = 1;
+select count(*) from events_tmp where year = "17" and month = "08" and day = "01
+
