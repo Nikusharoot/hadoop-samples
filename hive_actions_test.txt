@@ -1,0 +1,103 @@
+CREATE external TABLE IF NOT EXISTS
+testlocation (
+network STRING,
+geoname_id STRING,
+registered_country_geoname_id STRING,
+represented_country_geoname_id STRING,
+is_anonymous_proxy STRING,
+is_satellite_provider STRING,
+postal_code STRING,
+latitude STRING,
+longitude STRING,
+accuracy_radius STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LOCATION '/user/cloudera/data/hive-external2/testlocation';
+
+INSERT INTO TABLE testlocation 
+  VALUES ('12.12.12.0/24', '35', 'aaa','AAA', 'yes','yes', '23432', '234234','432432','43243'),
+  ('13.13.0.0/16', '45', 'bbb','BBB', 'yes','yes', '23432', '234234','432432','43243'),
+  ('13.14.0.0/16', '4222', 'sss','SSS', 'yes','yes', '23432', '234234','432432','43243'),
+  ('14.0.0.0/8', '76', 'ccc','CCC', 'yes','yes', '23432', '234234','432432','43243');
+
+
+
+CREATE EXTERNAL TABLE IF NOT EXISTS
+testesales (saletime STRING, product STRING, price DECIMAL, category STRING, address STRING)
+PARTITIONED BY (date STRING)
+ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+LOCATION '/user/cloudera/data/hive-external2/testesales';
+
+INSERT INTO TABLE testesales
+  PARTITION (date='2017-08-03') 
+  VALUES ('2017-08-03 11:49:23','Xerox 226',90.35,'Paper','12.12.12.12'),
+  ('2017-08-03 13:35:25','Brown Kraft Recycled Envelopes',35.65,'Envelopes','12.12.12.199'),
+  ('2017-08-03 20:37:01','Boston 1799 Powerhouse™ Electric Pencil Sharpener',207.36,'Pens & Art Supplies','13.13.0.243'),
+  ('2017-08-03 14:20:10','Okidata ML320 Series Turbo Dot Matrix Printers',119.58,'Office Machines','14.5.52.121'),
+  ('2017-08-03 17:04:10','Hewlett-Packard 4.7GB DVD+R Discs',47.86,'Computer Peripherals','13.13.38.149');
+
+
+SELECT saletime , product,price , category , address,  maskedAddress
+from testesales 
+LATERAL VIEW explode(bitsMaskMoveUDF(ipAddressToIntUDF(address)) ) ext_table AS maskedAddress;
+
+
+
+select
+t1.geoname_id,t2.maskedAddress, t2.price
+from 
+(select  netAddressExplodeUDTF(price, address) as (price, maskedAddress) from testesales) AS t2 
+FULL OUTER JOIN 
+(SELECT geoname_id , netMaskAddressLowIntUDF(network) as lowNetAddress FROM testlocation) AS t1
+ON (t1.lowNetAddress=t2.maskedAddress)
+where t1.geoname_id IS NOT NULL AND t2.price IS NOT NULL
+
+
+select
+t1.geoname_id,t2.maskedAddress, t2.price, t2.address, t1.network
+from 
+(select  netAddressExplodeUDTF(price, address) as (price, address, maskedAddress) from testesales) AS t2 
+FULL OUTER JOIN 
+(SELECT geoname_id , netMaskAddressLowIntUDF(network) as lowNetAddress, network FROM testlocation) AS t1
+ON (t1.lowNetAddress=t2.maskedAddress)
+where addressInNetCheckerUDF(t2.address, t1.network)
+
+
+where t1.geoname_id IS NOT NULL AND t2.price IS NOT NULL
+
+
+
+
+/* ANOTHER EXAMPLE */
+
+CREATE TABLE people(b int,abcd array<String> ); 
+
+INSERT INTO people SELECT 1, ARRAY("bob", "alice", "tom") ;
+INSERT INTO people SELECT 2, ARRAY("john", "mike", "jack");
+
+create table table1(name string, salary int);
+insert into table1 values("bob",1000);
+insert into table1 values("alice",500);
+
+hive> select b,c  from people LATERAL VIEW explode(ABCD) ep AS c;
+OK
+1       bob
+1       alice
+1       tom
+2       john
+2       mike
+2       jack
+
+
+hive> select
+t1.salary,t2.b, t2.c
+from 
+table1 AS t1
+join 
+(select b,c  from people LATERAL VIEW explode(ABCD) ep AS c) AS t2 
+ON (t1.name=t2.c)
+
+
+
+

@@ -119,26 +119,54 @@ LOAD  DATA LOCAL INPATH
 
 6.2 JOIN events data with ip geo data
 
+DELETE JAR /home/cloudera/workspace/SparkSample/udf/target/hive-extensions-1.0-SNAPSHOT-jar-with-dependencies.jar;
 ADD JAR /home/cloudera/workspace/SparkSample/udf/target/hive-extensions-1.0-SNAPSHOT-jar-with-dependencies.jar;
+DROP TEMPORARY FUNCTION ipAddressToIntUDF;
 CREATE TEMPORARY FUNCTION ipAddressToIntUDF as 'com.sample.udf.IpAddressToIntUDF';
-select saletime , product , price , category ,address, ipAddressToIntUDF(address) from sales_ext.esales_ext where date='2017-08-07' limit 10;
+DROP TEMPORARY FUNCTION simpleUDFExample;
+CREATE TEMPORARY FUNCTION simpleUDFExample as 'com.sample.udf.SimpleUDFExample';
+DROP TEMPORARY FUNCTION netMaskAddressLowIntUDF;
+CREATE TEMPORARY FUNCTION netMaskAddressLowIntUDF as 'com.sample.udf.NetMaskAddressLowIntUDF';
+DROP TEMPORARY FUNCTION netMaskAddressTopIntUDF;
+CREATE TEMPORARY FUNCTION netMaskAddressTopIntUDF as 'com.sample.udf.NetMaskAddressTopIntUDF';
+DROP TEMPORARY FUNCTION bitsMaskMoveUDF;
+CREATE TEMPORARY FUNCTION bitsMaskMoveUDF as 'com.sample.udf.BitsMaskMoveUDF';
+DROP TEMPORARY FUNCTION netAddressExplodeUDTF;
+CREATE TEMPORARY FUNCTION netAddressExplodeUDTF as 'com.sample.udf.NetAddressExplodeUDTF';
+DROP TEMPORARY FUNCTION addressInNetCheckerUDF;
+CREATE TEMPORARY FUNCTION addressInNetCheckerUDF as 'com.sample.udf.AddressInNetCheckerUDF';
 
+select saletime , product , price , category ,address , simpleUDFExample(address) from sales_ext.esales_ext where date='2017-08-07' limit 10;
+select saletime , product , price , category ,address , ipAddressToIntUDF(address) as longAddress from sales_ext.esales_ext where date='2017-08-07' limit 10;
 
-SELAECT lo.geoname_id geo_id, es.address address, es.price price 
-FROM sales_ext.esales_ext es JOIN sales.location lo ON (es.address = lo.network)
+JOIN:
+
+select
+t1.geoname_id, t1.network, t2.address, t2.price
+from 
+(select  netAddressExplodeUDTF(price, address) as (price, address, maskedAddress) from sales_ext.esales_ext WHERE date='2017-08-07') AS t2 
+FULL OUTER JOIN 
+(SELECT geoname_id , netMaskAddressLowIntUDF(network) as lowNetAddress, network FROM sales.location) AS t1
+ON (t1.lowNetAddress=t2.maskedAddress)
+where addressInNetCheckerUDF(t2.address, t1.network)
 LIMIT 30;
 
 6.3 Select top 10 countries with the highest money spending
 
 select eslo.geo_id,  sum(eslo.price) sum_price from 
 ( 
-select lo.geoname_id geo_id,  es.price price 
-from esales2 es join location lo ON (es.address = lo.network)
+select
+t1.geoname_id geo_id, t2.price price
+from 
+(select  netAddressExplodeUDTF(price, address) as (price, address, maskedAddress) from sales_ext.esales_ext) AS t2 
+FULL OUTER JOIN 
+(SELECT geoname_id , netMaskAddressLowIntUDF(network) as lowNetAddress, network FROM sales.location) AS t1
+ON (t1.lowNetAddress=t2.maskedAddress)
+where addressInNetCheckerUDF(t2.address, t1.network)
 ) eslo
 group by eslo.geo_id
 sort by sum_price desc
 limit 100
-
 
 
 
@@ -181,7 +209,7 @@ FROM
      ( SELECT category,
               product,
               count(*) AS cnt
-      FROM esales2
+      FROM esales_ext
       GROUP BY category,
                product ) AS grp_sls) es
 WHERE seqnum <= 10;
@@ -210,8 +238,14 @@ sqoop export --connect "jdbc:mysql://localhost:3306/sales" \
 insert overwrite directory '/user/cloudera/data/sales63' row format delimited fields terminated by ',' 
 select eslo.geo_id,  sum(eslo.price) sum_price from 
 ( 
-select lo.geoname_id geo_id,  es.price price 
-from esales2 es join location lo ON (es.address = lo.network)
+select
+t1.geoname_id geo_id, t2.price price
+from 
+(select  netAddressExplodeUDTF(price, address) as (price, address, maskedAddress) from sales_ext.esales_ext) AS t2 
+FULL OUTER JOIN 
+(SELECT geoname_id , netMaskAddressLowIntUDF(network) as lowNetAddress, network FROM sales.location) AS t1
+ON (t1.lowNetAddress=t2.maskedAddress)
+where addressInNetCheckerUDF(t2.address, t1.network)
 ) eslo
 group by eslo.geo_id
 sort by sum_price desc
