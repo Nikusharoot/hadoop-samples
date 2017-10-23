@@ -107,7 +107,7 @@ object Top10CountriesByNetMaskDFJob {
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sparkContext)
 
     val df = selectTop10CountriesWithHighestMoney(sqlContext,
-      "/user/cloudera/sampled/08/**",
+        "/user/cloudera/data/hive-external/esales_ext/**",
       "/user/cloudera/data/addresses.csv",
       "/user/cloudera/data/GeoLite2-City-Locations-en.csv")
     df.limit(10)

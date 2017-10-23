@@ -20,14 +20,6 @@ use sales_ext;
 
 DROP TABLE IF EXISTS esales_ext;
 
-CREATE EXTERNAL TABLE IF NOT EXISTS
-esales_ext (saletime STRING, product STRING, price DECIMAL, category STRING, address STRING)
-PARTITIONED BY (date STRING)
-ROW FORMAT DELIMITED
-FIELDS TERMINATED BY ','
-LOCATION '/user/cloudera/data/hive-external'
-
-
 //https://github.com/ogrodnek/csv-serde
 
 CREATE EXTERNAL TABLE IF NOT EXISTS

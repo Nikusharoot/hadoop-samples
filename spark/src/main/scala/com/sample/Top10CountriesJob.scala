@@ -2,15 +2,16 @@ package com.sample
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.functions.{rowNumber, max, broadcast}
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.col
 
 import org.apache.spark.sql.types.{TimestampType, StructType, StructField, StringType, DoubleType}
-  
-object Top10CountriesJob {
-  
+ /*
+ * DEPRECATED!!!! Wrong requirements assumption!
+ */
  
+object Top10CountriesJob {
+
   def selectTop10CountriesWithHighestMoney (sc : SparkContext) = {
     
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)

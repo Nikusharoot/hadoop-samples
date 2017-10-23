@@ -24,7 +24,7 @@ public class IpAddressToIntUDF extends UDF {
 		}
 	}
 
-	static protected long getLong(String maskStr) {
+	static public long getLong(String maskStr) {
 		if (maskStr.length() < 7) {
 			return -1;
 		}

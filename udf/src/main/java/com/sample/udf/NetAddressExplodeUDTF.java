@@ -60,12 +60,12 @@ public class NetAddressExplodeUDTF extends GenericUDTF {
 			// output inspectors -- an object with two fields!
 			List<String> fieldNames = new ArrayList<String>(1);
 			List<ObjectInspector> fieldOIs = new ArrayList<ObjectInspector>(1);
-			 fieldNames.add("price");
-				fieldNames.add("address_original");
-				fieldNames.add("address_ext");
-			 fieldOIs.add(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector);
-				fieldOIs.add(PrimitiveObjectInspectorFactory.javaStringObjectInspector);
-				fieldOIs.add(PrimitiveObjectInspectorFactory.javaLongObjectInspector);
+			fieldNames.add("price");
+			fieldNames.add("address_original");
+			fieldNames.add("address_ext");
+			fieldOIs.add(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector);
+			fieldOIs.add(PrimitiveObjectInspectorFactory.javaStringObjectInspector);
+			fieldOIs.add(PrimitiveObjectInspectorFactory.javaLongObjectInspector);
 			return ObjectInspectorFactory.getStandardStructObjectInspector(
 					fieldNames, fieldOIs);
 		} catch (Exception e) {
@@ -79,8 +79,8 @@ public class NetAddressExplodeUDTF extends GenericUDTF {
 	@Override
 	public void process(Object[] args) throws HiveException {
 		try {
-			final Double price = Double.parseDouble(stringOI[0].getPrimitiveJavaObject(args[0])
-					.toString());
+			final Double price = Double.parseDouble(stringOI[0]
+					.getPrimitiveJavaObject(args[0]).toString());
 			final String address = stringOI[1].getPrimitiveJavaObject(args[1])
 					.toString();
 			ArrayList<Object[]> results = processInputRecord(price, address);
@@ -108,7 +108,7 @@ public class NetAddressExplodeUDTF extends GenericUDTF {
 		long addrLong = IpAddressToIntUDF.getLong(address);
 		for (LongWritable lw : BitsMaskMoveUDF
 				.getListOfSubNetAddresses(addrLong)) {
-			result.add(new Object[] {price, address, lw.get() });
+			result.add(new Object[] { price, address, lw.get() });
 		}
 		return result;
 	}

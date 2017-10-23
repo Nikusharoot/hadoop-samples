@@ -10,7 +10,7 @@ import com.holdenkarau.spark.testing.SharedSparkContext
 
 class TopMostFrequentlyDFJobTest extends FunSuite with SharedSparkContext   {
    
-  test ("getTop10MostFrequentlyPurchasedCategories"){ 
+  test ("getTop10MostFrequentlyPurchasedCategories"){
     val sqlContext = new TestHiveContext(sc)
     val result = TopMostFrequentlyDFJob.getTop10MostFrequentlyPurchasedProductInEachCategory(sqlContext, "./src/test/resources/sampled/08/**")
     result.show()

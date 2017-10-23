@@ -57,11 +57,11 @@ object Top10CountriesNetmaskRDDJob {
       .setAppName("Spark Pi")
     val sparkContext = new SparkContext(conf)
 
-    selectTop10CountriesWithHighestMoney(sparkContext,
-      "/user/cloudera/sampled/08/**",
+    val result = selectTop10CountriesWithHighestMoney(sparkContext,
+      "/user/cloudera/data/hive-external/esales_ext/**",
       "/user/cloudera/data/addresses.csv",
       "/user/cloudera/data/GeoLite2-City-Locations-en.csv")
-
+    result.foreach { println }
     sparkContext.stop()
   }
 }

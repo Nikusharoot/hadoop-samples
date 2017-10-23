@@ -17,22 +17,28 @@ public class AddressInNetCheckerUDF extends UDF {
 				return new BooleanWritable(false);
 			// net address
 			String netstr = netAddressMask.toString();
-			int pos = netstr.indexOf("/");
-			String addressNetStr = NetMaskAddressLowIntUDF.validateAddress(
-					netstr, pos);
-			long netAddress = IpAddressToIntUDF.getLong(addressNetStr);
-			// address
 			String addressStr = address.toString();
-			int bitsNumber = NetMaskAddressTopIntUDF.validateMask(netstr, pos);
-			long netMask = ~NetMaskAddressTopIntUDF.getNetMaskLong(bitsNumber);
-			long addressMasked = (IpAddressToIntUDF.getLong(addressStr) & netMask);
 
-			return new BooleanWritable(netAddress == addressMasked);
+			return new BooleanWritable(checkAdresses(addressStr, netstr));
 
 		} catch (Exception e) {
 			log.error("Error in IpAddressToIntUDF evaluate with param:"
 					+ address + " " + netAddressMask, e);
 			return new BooleanWritable(false);
 		}
+	}
+
+	static public boolean checkAdresses(String addressStr, String netstr) {
+		int pos = netstr.indexOf("/");
+		String addressNetStr = NetMaskAddressLowIntUDF.validateAddress(
+				netstr, pos);
+		long netAddress = IpAddressToIntUDF.getLong(addressNetStr);
+		// address
+	
+		int bitsNumber = NetMaskAddressTopIntUDF.validateMask(netstr, pos);
+		long netMask = ~NetMaskAddressTopIntUDF.getNetMaskLong(bitsNumber);
+		long addressMasked = (IpAddressToIntUDF.getLong(addressStr) & netMask);
+
+		return netAddress == addressMasked;
 	}
 }

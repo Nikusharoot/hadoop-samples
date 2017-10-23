@@ -1,0 +1,10 @@
+geoname_id,locale_code,continent_code,continent_name,country_iso_code,country_name,subdivision_1_iso_code,subdivision_1_name,subdivision_2_iso_code,subdivision_2_name,city_name,metro_code,time_zone
+2151718,en,AF,Africa,RW,Rwanda,,,,,,,Africa/Kigali
+1810821,en,AF,Africa,SO,Somalia,,,,,,,Africa/Mogadishu
+1810821,en,AF,Africa,SO,Somalia,BN,Banaadir,,,Mogadishu,,Africa/Mogadishu
+2077456,en,AF,Africa,SO,Somalia,WO,"Woqooyi Galbeed",,,Hargeisa,,Africa/Mogadishu
+1809858,en,AS,Asia,YE,Yemen,,,,,,,Asia/Aden
+1850147,en,AS,Asia,YE,Yemen,DH,"Dhamār",,,Ta`izz,,Asia/Aden
+1809858,en,AS,Asia,YE,Yemen,HD,"Muhafazat Hadramawt",,,Sana',,Asia/Aden
+1854383,en,AS,Asia,YE,Yemen,SN,Sanaa,,,Sanaa,,Asia/Aden
+1854383,en,AS,Asia,YE,Yemen,IB,Ibb,,,Ibb,,Asia/Aden

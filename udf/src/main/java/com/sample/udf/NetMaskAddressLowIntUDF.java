@@ -28,7 +28,7 @@ public class NetMaskAddressLowIntUDF extends IpAddressToIntUDF {
 
 	}
 
-	static protected String validateAddress(String input, int pos) {
+	static public String validateAddress(String input, int pos) {
 		String maskStr = input;
 		if (pos > 0) {
 			maskStr = input.substring(0, pos);
