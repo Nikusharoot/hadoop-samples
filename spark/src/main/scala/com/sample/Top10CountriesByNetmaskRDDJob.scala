@@ -7,13 +7,12 @@ import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.col
 import com.sample.udf.AddressInNetCheckerUDF
 
+
 import org.apache.spark.sql.types.{ TimestampType, StructType, StructField, StringType, DoubleType }
 
 object Top10CountriesNetmaskRDDJob {
 
-  def selectTop10CountriesWithHighestMoney(sc: SparkContext, src: String, adrSrc: String, geoSrc: String) = {
-
-    val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
+  def selectTop10CountriesWithHighestMoney(sqlContext: SQLContext, src: String, adrSrc: String, geoSrc: String) = {
 
     val csvIpAddress = sqlContext.read
       .format("com.databricks.spark.csv")
@@ -50,18 +49,23 @@ object Top10CountriesNetmaskRDDJob {
       .map(f => (f._2._2._2, f._2._1._2))
 
     filteredSales.reduceByKey(_ + _).sortBy(_._2, false)
+
   }
 
   def main(args: Array[String]) = {
     val conf = new SparkConf()
-      .setAppName("Spark Pi")
+      .setAppName("Spark")
     val sparkContext = new SparkContext(conf)
+    val sqlContext = new org.apache.spark.sql.hive.HiveContext(sparkContext)
 
-    val result = selectTop10CountriesWithHighestMoney(sparkContext,
+    val result  = selectTop10CountriesWithHighestMoney(sqlContext,
       "/user/cloudera/data/hive-external/esales_ext/**",
       "/user/cloudera/data/addresses.csv",
       "/user/cloudera/data/GeoLite2-City-Locations-en.csv")
-    result.foreach { println }
+ //   println("Method was completed: selectTop10CountriesWithHighestMoney!")
+    import sqlContext.implicits._
+    result.toDF().limit(100).show(100)
+    
     sparkContext.stop()
   }
 }

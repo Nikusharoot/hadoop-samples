@@ -14,6 +14,7 @@ import com.sample.udf.IpAddressToIntUDF
 import com.sample.udf.NetMaskAddressLowIntUDF
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.functions._
+import scala.collection.mutable.ListBuffer
 
 object Top10CountriesByNetMaskDFJob {
 
@@ -29,7 +30,7 @@ object Top10CountriesByNetMaskDFJob {
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("inferSchema", "true")
-      .load(geoSrc).select("geoname_id", "country_name")
+      .load(geoSrc).select("geoname_id", "country_name").distinct()
 
     sqlContext.udf.register("addressToLong", (input: String) => {
       getNetAddress(input)
@@ -41,8 +42,7 @@ object Top10CountriesByNetMaskDFJob {
 
     csvIpAddress.join(csvCountryName, csvIpAddress.col("geoname_id") === csvCountryName.col("geoname_id"))
       .registerTempTable("ipCountry")
-    val ipCountry = sqlContext.sql("select network, country_name, addressToLong(network) as networkLong from ipCountry").distinct()
-        ipCountry.show()
+    val ipCountry = sqlContext.sql("select network, country_name, addressToLong(network) as networkLong from ipCountry").cache()
 
     val csv = sqlContext.read
       .format("com.databricks.spark.csv")
@@ -57,26 +57,39 @@ object Top10CountriesByNetMaskDFJob {
         addresses.map(maskedaddress => (address, maskedaddress))
     }
     val explodeDF = explodeDF2.toDF("price", "ipaddress", "ipaddress2", "maskedaddress")
-        explodeDF.show(100)
 
     val csvSaleDF = explodeDF.join(ipCountry, explodeDF.col("maskedaddress") === ipCountry.col("networkLong"))
       .filter("checkAddresses(ipaddress, network)")
-        csvSaleDF.show()
 
     csvSaleDF.registerTempTable("salesDF");
     sqlContext.sql("select country_name , sum (price) as sumPrice from salesDF group by country_name order by sumPrice desc")
   }
 
-  def getMaskedAdresses(address: String): Array[Long] = {
-    val result: Array[Long] = Array()
+  def getListOfSubNetAddresses(address: Long): List[Long] = {
+    val result = ListBuffer[Long]()
+    var mask: Long = ~0l
+    var shiftsCount: Integer = 1
+    var previouse: Long = -1
+    while (shiftsCount < 25) {
+      val changed: Long = address & mask
+      if (changed != previouse) {
+        result += changed
+      }
+      previouse = changed
+      mask = mask << 1
+      shiftsCount = shiftsCount + 1
+    }
+
+    return result.toList;
+  }
+
+  def getMaskedAdresses(address: String): List[Long] = {
+    val result: List[Long] = List()
     if (address == null || address.isEmpty()) {
       return result;
     }
     val addrLong: Long = IpAddressToIntUDF.getLong(address)
-    BitsMaskMoveUDF
-      .getListOfSubNetAddresses(addrLong).asScala.map { lw =>
-        lw.get()
-      }.toArray
+    getListOfSubNetAddresses(addrLong)
   }
 
   def getNetAddress(input: String): Long = {
@@ -102,16 +115,16 @@ object Top10CountriesByNetMaskDFJob {
 
   def main(args: Array[String]) = {
     val conf = new SparkConf()
-      .setAppName("Spark Pi")
+      .setAppName("Spark")
     val sparkContext = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sparkContext)
 
     val df = selectTop10CountriesWithHighestMoney(sqlContext,
-        "/user/cloudera/data/hive-external/esales_ext/**",
+      "/user/cloudera/data/hive-external/esales_ext/**",
       "/user/cloudera/data/addresses.csv",
       "/user/cloudera/data/GeoLite2-City-Locations-en.csv")
-    df.limit(10)
-      .show(10)
+    df.limit(100)
+      .show(100)
 
     sparkContext.stop()
   }

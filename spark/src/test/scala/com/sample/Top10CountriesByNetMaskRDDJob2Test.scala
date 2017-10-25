@@ -12,8 +12,9 @@ import com.holdenkarau.spark.testing.SharedSparkContext
 class Top10CountriesByNetMaskRDDJob2Test extends FunSuite with SharedSparkContext   {
    
   test ("getTop10MostFrequentlyPurchasedCategories"){ 
-    
-    val result = Top10CountriesNetmaskRDDJob.selectTop10CountriesWithHighestMoney(sc, 
+    val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
+   
+    val result = Top10CountriesNetmaskRDDJob.selectTop10CountriesWithHighestMoney(sqlContext, 
         "./src/test/resources/sampled2/08/**",
         "./src/test/resources/addresses2.csv",
         "./src/test/resources/GeoLite2-City-Locations-en2.csv")

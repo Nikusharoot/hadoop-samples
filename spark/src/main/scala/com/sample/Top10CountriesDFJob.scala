@@ -48,7 +48,7 @@ object Top10CountriesDFJob {
   
   def main(args: Array[String]) = {
     val conf = new SparkConf()
-             .setAppName("Spark Pi")
+             .setAppName("Spark")
     val sparkContext  = new SparkContext(conf)
     
     val result = selectTop10CountriesWithHighestMoney(sparkContext, "/user/cloudera/sampled/08/**", "/user/cloudera/data/addresses.csv",

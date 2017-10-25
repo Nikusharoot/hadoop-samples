@@ -77,7 +77,7 @@ object Top10CountriesJob {
   
   def main(args: Array[String]) = {
     val conf = new SparkConf()
-             .setAppName("Spark Pi")
+             .setAppName("Spark")
     val sparkContext  = new SparkContext(conf)
     
     selectTop10CountriesWithHighestMoney(sparkContext)

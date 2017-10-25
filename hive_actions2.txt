@@ -108,6 +108,17 @@ LOCATION '/user/cloudera/data/hive-external2/location'
 LOAD  DATA LOCAL INPATH
 "/home/cloudera/projects/hdfs/csv/addresses.csv" INTO TABLE location;
 
+CREATE external TABLE IF NOT EXISTS
+country (
+geoname_id STRING, locale_code STRING, continent_code STRING, continent_name STRING , country_iso_code STRING, country_name STRING, subdivision_1_iso_code STRING, subdivision_1_name STRING, subdivision_2_iso_code STRING, subdivision_2_name STRING, city_name STRING, metro_code STRING, time_zone STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LOCATION '/user/cloudera/data/hive-external2/country'
+
+LOAD  DATA LOCAL INPATH
+"/home/cloudera/projects/hdfs/csv/GeoLite2-City-Locations-en.csv" INTO TABLE country;
+
 
 6.2 JOIN events data with ip geo data
 
@@ -148,11 +159,12 @@ LIMIT 30;
 select eslo.geo_id,  sum(eslo.price) sum_price from 
 ( 
 select
-t1.geoname_id geo_id, t2.price price
+t1.country_name geo_id, t2.price price
 from 
 (select  netAddressExplodeUDTF(price, address) as (price, address, maskedAddress) from sales_ext.esales_ext) AS t2 
 FULL OUTER JOIN 
-(SELECT geoname_id , netMaskAddressLowIntUDF(network) as lowNetAddress, network FROM sales.location) AS t1
+(SELECT DISTINCT coun.country_name , netMaskAddressLowIntUDF(loc.network) as lowNetAddress, loc.network
+FROM sales.location as loc JOIN sales.country as coun ON loc.geoname_id = coun.geoname_id) AS t1
 ON (t1.lowNetAddress=t2.maskedAddress)
 where addressInNetCheckerUDF(t2.address, t1.network)
 ) eslo

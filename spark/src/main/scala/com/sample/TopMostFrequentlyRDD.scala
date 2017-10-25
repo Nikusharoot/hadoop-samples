@@ -52,7 +52,7 @@ object TopMostFrequentlyRDD {
 
   def main(args: Array[String]) = {
     val conf = new SparkConf()
-      .setAppName("Spark Pi")
+      .setAppName("Spark")
     val sparkContext = new SparkContext(conf)
 
     val result: List[String] = getTop10MostFrequentlyPurchasedProductInEachCategory(sparkContext, "/user/cloudera/sampled/08/**")

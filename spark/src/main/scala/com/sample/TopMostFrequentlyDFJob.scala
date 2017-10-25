@@ -41,7 +41,7 @@ object TopMostFrequentlyDFJob {
 
   def main(args: Array[String]) = {
     val conf = new SparkConf()
-      .setAppName("Spark Pi")
+      .setAppName("Spark")
     val sparkContext = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sparkContext)
     val dfTop = getTop10MostFrequentlyPurchasedProductInEachCategory(sqlContext, "/user/cloudera/sampled/08/**")

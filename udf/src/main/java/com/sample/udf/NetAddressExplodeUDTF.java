@@ -73,7 +73,6 @@ public class NetAddressExplodeUDTF extends GenericUDTF {
 					+ argOIs, e);
 			return null;
 		}
-
 	}
 
 	@Override
@@ -95,7 +94,6 @@ public class NetAddressExplodeUDTF extends GenericUDTF {
 			log.error("Error  in NetAddressExplodeUDTF process with param:"
 					+ args, e);
 		}
-
 	}
 
 	public ArrayList<Object[]> processInputRecord(Double price, String address) {
