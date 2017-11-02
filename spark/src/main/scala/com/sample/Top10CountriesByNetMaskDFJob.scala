@@ -59,10 +59,10 @@ object Top10CountriesByNetMaskDFJob {
     val explodeDF = explodeDF2.toDF("price", "ipaddress", "ipaddress2", "maskedaddress")
 
     val csvSaleDF = explodeDF.join(ipCountry, explodeDF.col("maskedaddress") === ipCountry.col("networkLong"))
-      .filter("checkAddresses(ipaddress, network)")
+    //  .filter("checkAddresses(ipaddress, network)")
 
     csvSaleDF.registerTempTable("salesDF");
-    sqlContext.sql("select country_name , sum (price) as sumPrice from salesDF group by country_name order by sumPrice desc")
+    sqlContext.sql("select country_name , sum (price) as sumPrice from salesDF group by country_name where checkAddresses(ipaddress, network) order by sumPrice desc")
   }
 
   def getListOfSubNetAddresses(address: Long): List[Long] = {
